@@ -1,0 +1,51 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// 企业。用户与企业一对一，归属由 users.enterprise_id 直接表达。
+model Enterprise {
+  id            String   @id @default(uuid())
+  enterpriseId  String   @unique @map("enterprise_id")
+  name          String
+  variety       String
+  workspacePath String?  @map("workspace_path")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  users User[]
+
+  @@map("enterprises")
+}
+
+/// 用户。password_hash 由 bcrypt 生成。
+model User {
+  id           String     @id @default(uuid())
+  username     String     @unique
+  passwordHash String     @map("password_hash")
+  enterpriseId String     @map("enterprise_id")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  enterprise   Enterprise @relation(fields: [enterpriseId], references: [enterpriseId])
+
+  @@map("users")
+}
+
+/// 品种行情。系统级数据，由外部定时拉取（演示用模拟数据）。
+model MarketQuote {
+  id           String   @id @default(uuid())
+  variety      String
+  contract     String
+  settle       Float
+  volume       Int
+  openInterest Int      @map("open_interest")
+  quoteDate    DateTime @map("quote_date")
+  source       String
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([variety])
+  @@map("market_quotes")
+}

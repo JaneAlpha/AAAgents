@@ -1,0 +1,77 @@
+name: hedging-agent
+
+services:
+  parser:
+    build:
+      context: .
+      dockerfile: services/parser/Dockerfile
+    environment:
+      PARSER_PORT: 8000
+    ports:
+      - "8000:8000"
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-hedge}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-hedge}
+      POSTGRES_DB: ${POSTGRES_DB:-hedge}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-hedge} -d ${POSTGRES_DB:-hedge}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+    ports:
+      - "5432:5432"
+
+  business:
+    build:
+      context: .
+      dockerfile: apps/business/Dockerfile
+      args:
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmmirror.com}
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-hedge}:${POSTGRES_PASSWORD:-hedge}@postgres:5432/${POSTGRES_DB:-hedge}?schema=public
+      WORKSPACE_ROOT: /workspace
+      BUSINESS_PORT: 3000
+      ADMIN_WEB_ROOT: /app/apps/business/public
+      RUNTIME_URL: http://runtime:3001
+      PARSER_URL: http://parser:8000
+    depends_on:
+      postgres:
+        condition: service_healthy
+      parser:
+        condition: service_started
+    volumes:
+      - workspace_data:/workspace
+    ports:
+      - "3000:3000"
+
+  runtime:
+    build:
+      context: .
+      dockerfile: apps/runtime/Dockerfile
+      args:
+        NPM_REGISTRY: ${NPM_REGISTRY:-https://registry.npmmirror.com}
+    environment:
+      WORKSPACE_ROOT: /workspace
+      RUNTIME_PORT: 3001
+      BUSINESS_URL: http://business:3000
+      AUTONOMY_ENABLED: ${AUTONOMY_ENABLED:-true}
+      AUTONOMY_INTERVAL_MIN: ${AUTONOMY_INTERVAL_MIN:-60}
+      LLM_BASE_URL: ${LLM_BASE_URL:-}
+      LLM_MODEL: ${LLM_MODEL:-}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+    depends_on:
+      business:
+        condition: service_started
+    volumes:
+      - workspace_data:/workspace
+    ports:
+      - "3001:3001"
+
+volumes:
+  postgres_data:
+  workspace_data:

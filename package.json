@@ -1,0 +1,24 @@
+{
+  "name": "hedging-agent",
+  "version": "1.0.0",
+  "private": true,
+  "description": "金融套期保值智能体系统",
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces --if-present",
+    "seed": "npm run seed -w apps/business",
+    "test": "npm run test -w @hedging/business && npm run test -w @hedging/runtime && npm run test -w @hedging/admin-web",
+    "test:system": "node tests/system/system.e2e.mjs",
+    "compose:up": "docker compose up -d --build",
+    "compose:down": "docker compose down",
+    "compose:logs": "docker compose logs -f"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "devDependencies": {
+    "pdf-lib": "^1.17.1"
+  }
+}

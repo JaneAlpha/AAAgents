@@ -1,0 +1,11 @@
+**/node_modules
+**/dist
+**/build
+.git
+.env
+.env.local
+*.log
+**/__pycache__
+套期保值智能体原型
+**/*.tsbuildinfo
+**/public

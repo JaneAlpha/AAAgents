@@ -1,0 +1,27 @@
+# ===== 依赖与构建产物 =====
+node_modules/
+dist/
+build/
+apps/*/public/
+*.tsbuildinfo
+
+# ===== 环境变量（含敏感配置，绝不提交；仅保留模板 .env.example）=====
+.env
+.env.*
+!.env.example
+
+# ===== 运行时数据 / 日志 =====
+*.log
+coverage/
+apps/*/prisma/migrations/dev.db*
+
+# ===== 参考材料（PDF / DOCX / XLSX 等二进制）=====
+参考材料/
+
+# ===== 前身 Python 原型（仅作参考，不纳入版本管理）=====
+苹果期现套保智能体/
+红枣期现套保智能体/
+
+# ===== 系统 =====
+.DS_Store
+Thumbs.db

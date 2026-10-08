@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "hedge_advice.schema.json",
+  "title": "套期保值提示结果",
+  "description": "Agent 输出的标准化套保提示。合规：明确非投资建议、必须人工复核、系统不下单。可操作：给出品种/合约/方向/手数/参考点位/期限/前提条件。",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "meta", "data_status", "exposure", "advice", "risk", "compliance", "lineage"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["enterprise_id", "variety", "as_of", "generated_at"],
+      "properties": {
+        "enterprise_id": { "type": "string", "minLength": 1 },
+        "variety": { "enum": ["苹果", "红枣"] },
+        "as_of": { "type": "string", "format": "date", "description": "评估基准日" },
+        "generated_at": { "type": "string", "format": "date-time" }
+      }
+    },
+
+    "data_status": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "missing"],
+      "properties": {
+        "status": {
+          "enum": ["complete", "conditional", "insufficient"],
+          "description": "complete=数据齐；conditional=缺现货价等，仅条件化提示；insufficient=缺企业台账，不给手数"
+        },
+        "missing": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "缺失的数据项名称"
+        }
+      }
+    },
+
+    "exposure": {
+      "type": "array",
+      "description": "各风险池净敞口",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["pool_id", "basis", "net_ton", "risk_direction"],
+        "properties": {
+          "pool_id": { "type": "string" },
+          "basis": { "type": "string", "description": "风险池键：产季|地区|等级|期限" },
+          "net_ton": { "type": "number" },
+          "risk_direction": {
+            "enum": ["long", "short", "flat"],
+            "description": "long=持库存怕跌(需卖出保值)；short=需采购怕涨(需买入保值)；flat=无敞口"
+          }
+        }
+      }
+    },
+
+    "advice": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["pool_id", "action", "instrument", "reason", "conditions"],
+        "properties": {
+          "pool_id": { "type": "string" },
+          "action": { "enum": ["sell_hedge", "buy_hedge", "hold", "observe"] },
+          "instrument": {
+            "enum": ["futures", "protective_put", "protective_call", "option_structure", "spot_contract", "none"]
+          },
+          "contract": {
+            "type": ["string", "null"],
+            "description": "具体合约如 AP2610 / CJ2601；不给出手数时为 null"
+          },
+          "target_lots": { "type": ["integer", "null"], "minimum": 0 },
+          "entry_zone": {
+            "type": ["object", "null"],
+            "additionalProperties": false,
+            "required": ["low", "high", "unit"],
+            "description": "参考点位区间（非成交价、非交易商报价）",
+            "properties": {
+              "low": { "type": "number" },
+              "high": { "type": "number" },
+              "unit": { "const": "元/吨" }
+            }
+          },
+          "horizon": { "type": ["string", "null"], "format": "date" },
+          "reason": { "type": "string", "minLength": 1 },
+          "conditions": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "执行前必须满足的前置条件"
+          }
+        }
+      }
+    },
+
+    "risk": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["blockers", "warnings"],
+      "properties": {
+        "blockers": { "type": "array", "items": { "type": "string" }, "description": "阻断项：存在则不得执行" },
+        "warnings": { "type": "array", "items": { "type": "string" } },
+        "max_hedge_ratio": { "type": ["number", "null"], "minimum": 0, "maximum": 1 },
+        "cash_stress": { "type": ["object", "null"], "additionalProperties": true }
+      }
+    },
+
+    "compliance": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["no_order_placed", "not_investment_advice", "human_review_required", "required_reviewers", "disclaimer"],
+      "properties": {
+        "no_order_placed": { "const": true, "description": "系统不下单，无外部执行效果" },
+        "not_investment_advice": { "const": true },
+        "human_review_required": { "const": true },
+        "required_reviewers": {
+          "type": "array",
+          "items": { "enum": ["业务负责人", "独立风控", "企业授权审批人"] }
+        },
+        "disclaimer": { "type": "string", "minLength": 1 }
+      }
+    },
+
+    "lineage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["snapshot_hash", "report_hash"],
+      "properties": {
+        "snapshot_hash": { "type": "string" },
+        "report_hash": { "type": "string" },
+        "rule_refs": { "type": "array", "items": { "type": "string" } },
+        "data_sources": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}
